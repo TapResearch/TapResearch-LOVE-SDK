@@ -12,12 +12,12 @@ local labelText = "Select an option"
 function showTapResearchContent(placementTag)
 	if tap.isReady() then
 		tap.onContentShown = function(placement)
-			print("[TapResearch-Lua] Content shown for: " .. placement)
+			print("[TapResearch-LuaExample] Content shown for: " .. placement)
 		end
 		tap.onContentDismissed = function(placement) 
-			print("[TapResearch-Lua] Content dismissed for: " .. placement)
+			print("[TapResearch-LuaExample] Content dismissed for: " .. placement)
 		end
-		print("[TapResearch-Lua] Showing: " .. placementTag)
+		print("[TapResearch-LuaExample] Showing: " .. placementTag)
 		tap.showContent(placementTag)
 	else
 		print("[TapResearch-Lua] TapResearchSDK not ready for: " .. placementTag)
@@ -87,7 +87,7 @@ local function layoutButtons()
 end
 
 function tapRewardHandler(rewards)
-	print("[TapResearch-Lua] Got rewards!")
+	print("[TapResearch-LuaExample] Got rewards!")
 
 	for _, reward in ipairs(rewards) do
 		print("  Reward transactionIdentifier: " .. reward.transactionIdentifier)
@@ -102,7 +102,7 @@ function tapRewardHandler(rewards)
 end
 
 function tapQQResponseHandler(payload)
-	print("[TapResearch-Lua] Got QQ payload!")
+	print("[TapResearch-LuaExample] Got QQ payload!")
 
 	print("  Survey ID: " .. payload.survey_identifier)
 	print("  App Name: " .. payload.app_name)
@@ -146,11 +146,11 @@ function tapQQResponseHandler(payload)
 end
 
 function onTapSdkReady() 
-	print("[TapResearch-Lua] TapResearch Sdk Ready!")
+	print("[TapResearch-LuaExample] TapResearch Sdk Ready!")
 end
 
 function onTapSdkError(error, code)
-	print("[TapResearch-Lua] TapResearch Sdk Error: " .. code .. ": " .. error)
+	print("[TapResearch-LuaExample] TapResearch Sdk Error: " .. code .. ": " .. error)
 end
 
 function love.load()
@@ -158,14 +158,14 @@ function love.load()
 	font = love.graphics.newFont(24)
 	love.graphics.setFont(font)
 
-	print("[TapResearch-Lua] Setting REQUIRED sdk ready and sdk erorr callbacks")
+	print("[TapResearch-LuaExample] Setting REQUIRED sdk ready and sdk erorr callbacks")
 	tap.onSdkReady = onTapSdkReady
 	tap.onTapSdkError = onTapSdkError
 	
-	print("[TapResearch-Lua] Initializing TapResearchSDK")
+	print("[TapResearch-LuaExample] Initializing TapResearchSDK")
 	tap.initialize("100e9133abc21471c8cd373587e07515", "tr-sdk-test-user-my-new-public-demo-user")
 	
-	print("[TapResearch-Lua] Setting reward and Quick Question handlers")
+	print("[TapResearch-LuaExample] Setting reward and Quick Question handlers")
 	tap.setOnRewardReceived(tapRewardHandler)
 	tap.setOnQuickQuestionResponse(tapQQResponseHandler)
 
