@@ -61,11 +61,12 @@ function tapresearch.setOnRewardReceived(func)
 end
 
 function tapresearch.setOnQuickQuestionResponse(func)
+	print("[LuaToNativeBridge] setOnQuickQuestionResponse")
     tapresearch.onQuickQuestionResponse = func
 	if func == nil then
-		native.setRewardCallback(false)
+		native.setQuickQuestionCallback(false)
 	else
-		native.setRewardCallback(true)
+		native.setQuickQuestionCallback(true)
 	end
 end
 
