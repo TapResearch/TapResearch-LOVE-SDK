@@ -1,0 +1,142 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.1 effective-5.10 (swiftlang-6.1.0.110.21 clang-1700.0.13.3)
+// swift-module-flags: -target x86_64-apple-ios12.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name TapResearchSDK
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1
+import AVFAudio
+import AdSupport
+import AppTrackingTransparency
+import CoreTelephony
+import Foundation
+import LocalAuthentication
+import Network
+import ObjectiveC
+import Swift
+import SystemConfiguration
+@_exported import TapResearchSDK
+import UIKit
+import WebKit
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+import ObjectiveC.runtime
+@_hasMissingDesignatedInitializers @objc final public class TRReward : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let transactionIdentifier: Swift.String?
+  @objc final public let placementTag: Swift.String?
+  @objc final public let placementIdentifier: Swift.String?
+  @objc final public let currencyName: Swift.String?
+  @objc final public let payoutEvent: Swift.String?
+  @objc final public let rewardAmount: Swift.Int
+  @objc deinit
+  final public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@objc final public class TRSurvey : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let surveyIdentifier: Swift.String
+  @objc final public let lengthInMinutes: Swift.Int
+  @objc final public let rewardAmount: Swift.Double
+  @objc final public let currencyName: Swift.String
+  @objc final public let isHotTile: Swift.Bool
+  @objc final public let isSale: Swift.Bool
+  @objc final public let saleMultiplier: Swift.Double
+  @objc final public let preSaleRewardAmount: Swift.Double
+  @objc final public let saleEndDate: Swift.String?
+  @objc deinit
+  final public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@objc public protocol TapResearchQuickQuestionDelegate {
+  @objc func onTapResearchQuickQuestionResponse(_ qqPayload: TapResearchSDK.TRQQDataPayload)
+}
+@objc public protocol TapResearchRewardDelegate {
+  @objc func onTapResearchDidReceiveRewards(_ rewards: [TapResearchSDK.TRReward])
+}
+@objc public protocol TapResearchSDKDelegate {
+  @objc func onTapResearchDidError(_ error: Foundation.NSError)
+  @objc func onTapResearchSdkReady()
+  @objc optional func onTapResearchDidReceiveRewards(_ rewards: [TapResearchSDK.TRReward])
+  @objc optional func onTapResearchQuickQuestionResponse(_ qqPayload: TapResearchSDK.TRQQDataPayload)
+}
+@objc public protocol TapResearchContentDelegate {
+  @objc func onTapResearchContentShown(forPlacement placement: Swift.String)
+  @objc func onTapResearchContentDismissed(forPlacement placement: Swift.String)
+}
+@objc public protocol TapResearchSurveysDelegate {
+  @objc func onTapResearchSurveysRefreshed(forPlacement placementTag: Swift.String)
+}
+@_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class TapResearch : ObjectiveC.NSObject {
+  @objc public static let TapResearchErrorDomain: Swift.String
+  @objc public static let TapResearchErrorCode: Swift.String
+  @objc public static let TapResearchErrorCodeString: Swift.String
+  @objc deinit
+  @objc public static func initialize(withAPIToken apiToken: Swift.String, userIdentifier: Swift.String, sdkDelegate: any TapResearchSDK.TapResearchSDKDelegate, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func initialize(withAPIToken apiToken: Swift.String, userIdentifier: Swift.String, userAttributes: [Swift.AnyHashable : Any], clearPreviousAttributes: Swift.Bool = false, sdkDelegate: any TapResearchSDK.TapResearchSDKDelegate, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func initialize(withAPIToken apiToken: Swift.String, userIdentifier: Swift.String, sdkDelegate: any TapResearchSDK.TapResearchSDKDelegate, rewardDelegate: any TapResearchSDK.TapResearchRewardDelegate, quickQuestionDelegate: (any TapResearchSDK.TapResearchQuickQuestionDelegate)? = nil, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func initialize(withAPIToken apiToken: Swift.String, userIdentifier: Swift.String, userAttributes: [Swift.AnyHashable : Any], clearPreviousAttributes: Swift.Bool = false, sdkDelegate: any TapResearchSDK.TapResearchSDKDelegate, rewardDelegate: any TapResearchSDK.TapResearchRewardDelegate, quickQuestionDelegate: (any TapResearchSDK.TapResearchQuickQuestionDelegate)? = nil, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func setRewardDelegate(_ delegate: (any TapResearchSDK.TapResearchRewardDelegate)?)
+  @objc public static func setQuickQuestionDelegate(_ delegate: (any TapResearchSDK.TapResearchQuickQuestionDelegate)?)
+  @objc public static func isReady() -> Swift.Bool
+  @objc public static func setUserIdentifier(_ userIdentifier: Swift.String, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func canShowContent(forPlacement tag: Swift.String, error: ((Foundation.NSError?) -> Swift.Void)? = nil) -> Swift.Bool
+  @objc public static func showContent(forPlacement tag: Swift.String, delegate: any TapResearchSDK.TapResearchContentDelegate, completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func showContent(forPlacement tag: Swift.String, delegate: any TapResearchSDK.TapResearchContentDelegate, customParameters: [Swift.AnyHashable : Any], completion: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func sendUserAttributes(attributes: [Swift.AnyHashable : Any], clearPreviousAttributes: Swift.Bool = false) -> Foundation.NSError?
+  @objc public static func setSurveysDelegate(_ delegate: (any TapResearchSDK.TapResearchSurveysDelegate)?)
+  @objc public static func hasSurveys(for placementTag: Swift.String, errorHandler: ((Foundation.NSError?) -> Swift.Void)? = nil) -> Swift.Bool
+  @objc public static func getSurveys(for placementTag: Swift.String, errorHandler: ((Foundation.NSError?) -> Swift.Void)? = nil) -> [TapResearchSDK.TRSurvey]
+  @objc public static func canShowSurvey(surveyId: Swift.String, forPlacementTag placementTag: Swift.String) -> Swift.Bool
+  @objc public static func showSurvey(surveyId: Swift.String, placementTag: Swift.String, delegate: any TapResearchSDK.TapResearchContentDelegate, errorHandler: ((Foundation.NSError?) -> Swift.Void)? = nil)
+  @objc public static func showSurvey(surveyId: Swift.String, placementTag: Swift.String, delegate: any TapResearchSDK.TapResearchContentDelegate, customParameters: [Swift.AnyHashable : Any], errorHandler: ((Foundation.NSError?) -> Swift.Void)? = nil)
+}
+extension TapResearchSDK.TapResearch : TapResearchSDK.TapResearchSurveysDelegate {
+  @objc final public func onTapResearchSurveysRefreshed(forPlacement placementTag: Swift.String)
+}
+@_hasMissingDesignatedInitializers @objc final public class TRQQDataPayload : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let survey_identifier: Swift.String
+  @objc final public let app_name: Swift.String
+  @objc final public let api_token: Swift.String
+  @objc final public let sdk_version: Swift.String
+  @objc final public let platform: Swift.String
+  @objc final public let placement_tag: Swift.String
+  @objc final public let user_identifier: Swift.String
+  @objc final public let user_locale: Swift.String
+  @objc final public let seen_at: Swift.String
+  @objc final public let questions: [TapResearchSDK.TRQQDataPayloadQuestion]
+  @objc final public let target_audience: [TapResearchSDK.TRQQDataPayloadTargetFilter]?
+  @objc final public let complete: TapResearchSDK.TRQQComplete?
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers @objc final public class TRQQComplete : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let complete_identifier: Swift.String
+  @objc final public let completed_at: Swift.String
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers @objc final public class TRQQUserAnswer : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let value: Swift.String
+  @objc final public let identifiers: [Swift.String]
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers @objc final public class TRQQDataPayloadQuestion : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let question_identifier: Swift.String
+  @objc final public let question_text: Swift.String
+  @objc final public let question_type: Swift.String
+  @objc final public var rating_scale_size: Swift.Int
+  @objc final public let user_answer: TapResearchSDK.TRQQUserAnswer?
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers @objc final public class TRQQDataPayloadTargetFilter : ObjectiveC.NSObject, Swift.Codable {
+  @objc final public let filter_attribute_name: Swift.String
+  @objc final public let filter_operator: Swift.String
+  @objc final public let filter_value: Swift.String
+  @objc final public let user_value: Swift.String
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  @objc deinit
+}
