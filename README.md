@@ -23,7 +23,9 @@ The installer copies the native bridge, patches LÖVE's native Lua module regist
 
 See `platform/xcode/Integration.md` for the full integration guide.
 
+## Android Integration Instructions
 
+Please see [TapResearch LÖVE SDK Android integration guide](./platform/android/README.md)
 
 ## Other platforms:
 
