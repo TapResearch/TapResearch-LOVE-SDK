@@ -15,7 +15,7 @@ local showSurveysOverlay = false
 
 local surveysExitButton = {
     x = 40,
-    y = 40,
+    y = 60,
     width = 40,
     height = 40,
     label = "X",
@@ -81,6 +81,8 @@ end
 function button4()
     updateLabel("Quick Question selected")
     showTapResearchContent("quick-answer-mcgraw")
+    -- for Android, use:
+    -- showTapResearchContent("awesome-zone")
 end
 
 function button5()
@@ -297,8 +299,9 @@ function love.load()
     tap.onTapSdkError = onTapSdkError
 
     print("[TapResearch-LuaExample] Initializing TapResearchSDK")
+    -- These values will work for demonstration purposes
     tap.initialize("100e9133abc21471c8cd373587e07515", "tr-sdk-test-user-my-new-public-demo-user")
-    -- for android, use:
+    -- for Android, use:
     -- tap.initialize("fb28e5e0572876db0790ecaf6c588598", "tr-sdk-test-user-7887032225")
 
     print("[TapResearch-LuaExample] Setting reward and Quick Question handlers")
