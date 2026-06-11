@@ -298,6 +298,8 @@ function love.load()
 
     print("[TapResearch-LuaExample] Initializing TapResearchSDK")
     tap.initialize("100e9133abc21471c8cd373587e07515", "tr-sdk-test-user-my-new-public-demo-user")
+    -- for android, use:
+    -- tap.initialize("fb28e5e0572876db0790ecaf6c588598", "tr-sdk-test-user-7887032225")
 
     print("[TapResearch-LuaExample] Setting reward and Quick Question handlers")
     tap.setOnRewardReceived(tapRewardHandler)
