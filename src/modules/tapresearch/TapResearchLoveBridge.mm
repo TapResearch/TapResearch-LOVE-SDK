@@ -48,14 +48,20 @@ TapResearchGrantBoostResponseDelegate
 }
 
 /// ---------------------------------------------------------------------------------------------
-- (void)initializeWithAPIToken:(NSString *)apiToken userId:(NSString *)userId {
+- (void)initializeWithAPIToken:(NSString *)apiToken
+						userId:(NSString *)userId
+					devVersion:(NSString *)devVersion
+				 engineVersion:(NSString *)engineVersion
+{
 	TR_DEBUG_LOG(@"");
+
+	[NSUserDefaults.standardUserDefaults setObject:@"love" forKey:@"TapResearchDevPlatform"];
+	[NSUserDefaults.standardUserDefaults setObject:devVersion forKey:@"TapResearchDevPlatformVersion"];
+	[NSUserDefaults.standardUserDefaults setObject:engineVersion forKey:@"TapResearchDevEngineVersion"];
 
 	[TapResearch initializeWithAPIToken:apiToken
 						 userIdentifier:userId
 							sdkDelegate:self
-						 rewardDelegate:nil
-				  quickQuestionDelegate:nil
 							 completion:^(NSError * _Nullable error) {
 		if (error) {
 			[self onTapResearchDidError:error];
@@ -65,14 +71,22 @@ TapResearchGrantBoostResponseDelegate
 }
 
 /// ---------------------------------------------------------------------------------------------
-- (void)initializeWithAPIToken:(NSString *)apiToken userId:(NSString *)userId userAttributes:(NSDictionary*)attributes clearAttributes:(BOOL)clear {
+- (void)initializeWithAPIToken:(NSString *)apiToken
+						userId:(NSString *)userId
+				userAttributes:(NSDictionary*)attributes
+			   clearAttributes:(BOOL)clear
+					devVersion:(NSString *)devVersion
+				 engineVersion:(NSString *)engineVersion
+{
 	TR_DEBUG_LOG(@"");
+
+	[NSUserDefaults.standardUserDefaults setObject:@"love" forKey:@"TapResearchDevPlatform"];
+	[NSUserDefaults.standardUserDefaults setObject:devVersion forKey:@"TapResearchDevPlatformVersion"];
+	[NSUserDefaults.standardUserDefaults setObject:engineVersion forKey:@"TapResearchDevEngineVersion"];
 
 	[TapResearch initializeWithAPIToken:apiToken
 						 userIdentifier:userId
 							sdkDelegate:self
-						 rewardDelegate:nil
-				  quickQuestionDelegate:nil
 							 completion:^(NSError * _Nullable error) {
 		if (error) {
 			[self onTapResearchDidError:error];
@@ -268,7 +282,7 @@ TapResearchGrantBoostResponseDelegate
 	}];
 }
 
-//MARK: - SDK delegates
+//MARK: - Default SDK delegates
 
 /// ---------------------------------------------------------------------------------------------
 - (void)onTapResearchSdkReady {
@@ -505,6 +519,28 @@ TapResearchGrantBoostResponseDelegate
 }
 
 /// ---------------------------------------------------------------------------------------------
+- (void)onTapResearchSurveysRefreshedForPlacement:(NSString *)placementTag {
+	NSString *string = [NSString stringWithFormat:@"Surveys refreshed for placement %@", placementTag];
+	TR_DEBUG_LOG(string);
+
+	dispatch_async(dispatch_get_main_queue(), ^{
+		if (g_luaState) {
+			lua_getglobal(g_luaState, "require");
+			lua_pushstring(g_luaState, "tapresearch");
+			lua_call(g_luaState, 1, 1); // returns the tapresearch module table
+
+			lua_getfield(g_luaState, -1, "onSurveysRefreshed");
+
+			if (lua_isfunction(g_luaState, -1)) {
+				lua_pushstring(g_luaState, [placementTag UTF8String]);
+				lua_call(g_luaState, 1, 0); // call onSurveysRefreshed(placement)
+			}
+			lua_pop(g_luaState, 1); // pop tapresearch module
+		}
+	});
+}
+
+/// ---------------------------------------------------------------------------------------------
 - (void)onTapResearchGrantBoostResponse:(TRGrantBoostResponse *)boostResponse {
 	NSString *string = [NSString stringWithFormat:@"Received boostResponse %@", boostResponse];
 	TR_DEBUG_LOG(string);
@@ -525,45 +561,30 @@ TapResearchGrantBoostResponseDelegate
 
 			lua_pushstring(L, "success");
 			lua_pushboolean(L, boostResponse.success);
+			lua_settable(L, -3);
 
 			if (boostResponse.error) {
 				lua_pushstring(L, "error");
 				lua_newtable(L);
-				lua_pushstring(g_luaState, [boostResponse.error.localizedDescription UTF8String]);
-				lua_pushinteger(g_luaState, boostResponse.error.code);
+				lua_pushstring(L, "localizedDescription");
+				lua_pushstring(L, [boostResponse.error.localizedDescription UTF8String]);
+				lua_settable(L, -3);
+				lua_pushstring(L, "code");
+				lua_pushinteger(L, boostResponse.error.code);
+				lua_settable(L, -3);
 				lua_settable(L, -3);
 			}
 
-			lua_call(L, 1, 0); // onRewardReceived(array)
+			lua_call(L, 1, 0); // onBoostResponse(boostResponse)
 		} else {
-			NSLog(@"[TapResearchLoveBridge-Native] No onRewardReceived function set.");
+			NSLog(@"[TapResearchLoveBridge-Native] No onBoostResponse function set.");
 			lua_pop(L, 1); // pop non-function
 		}
 		lua_pop(L, 1); // pop tapresearch module
 	}
 }
 
-/// ---------------------------------------------------------------------------------------------
-- (void)onTapResearchSurveysRefreshedForPlacement:(NSString * _Nonnull)placementTag {
-	NSString *string = [NSString stringWithFormat:@"Surveys refreshed for placement %@", placementTag];
-	TR_DEBUG_LOG(string);
-
-	dispatch_async(dispatch_get_main_queue(), ^{
-		if (g_luaState) {
-			lua_getglobal(g_luaState, "require");
-			lua_pushstring(g_luaState, "tapresearch");
-			lua_call(g_luaState, 1, 1); // returns the tapresearch module table
-
-			lua_getfield(g_luaState, -1, "onSurveysRefreshed");
-
-			if (lua_isfunction(g_luaState, -1)) {
-				lua_pushstring(g_luaState, [placementTag UTF8String]);
-				lua_call(g_luaState, 1, 0); // call onSurveysRefreshed(placement)
-			}
-			lua_pop(g_luaState, 1); // pop tapresearch module
-		}
-	});
-}
+//MARK: - Lua data parser
 
 @end
 

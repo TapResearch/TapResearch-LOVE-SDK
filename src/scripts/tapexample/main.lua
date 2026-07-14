@@ -15,7 +15,7 @@ local showSurveysOverlay = false
 
 local surveysExitButton = {
     x = 40,
-    y = 40,
+    y = 60,
     width = 40,
     height = 40,
     label = "X",
@@ -51,7 +51,7 @@ function showTapResearchSurvey(surveyId, placementTag)
             print("[TapResearch-LuaExample] Content dismissed for survey: " .. surveyId .. ", placement: " .. placement)
         end
         print("[TapResearch-LuaExample] Showing survey: " .. surveyId .. ", placement: " .. placementTag)
-		tap.onSurveysRefreshed = fucntion(placement)
+		tap.onSurveysRefreshed = function(placement)
 			-- Note: Please set this callback where it will be available for the duration of presenting survey buttons on screen.
 			--       In this callback you should call to tap.getSurveys and refresh the surveys shown.
 			print("[TapResearch-LuaExample] Surveys refreshed for placement: " .. placement)
@@ -81,6 +81,8 @@ end
 function button4()
     updateLabel("Quick Question selected")
     showTapResearchContent("quick-answer-mcgraw")
+    -- for Android, use:
+    -- showTapResearchContent("awesome-zone")
 end
 
 function button5()
@@ -212,9 +214,9 @@ function tapRewardHandler(rewards)
 
     for _, reward in ipairs(rewards) do
         print("  Reward transactionIdentifier: " .. reward.transactionIdentifier)
-        print("  Reward placementTag: " .. reward.placementTag) -- comment
-        print("  Reward placementIdentifier: " .. reward.placementIdentifier)
-        print("  Reward payoutEvent: " .. reward.payoutEvent)
+        print("  Reward placementTag: " .. reward.placementTag)
+        print("  Reward placementIdentifier: ", reward.placementIdentifier)
+        print("  Reward payoutEvent: ", reward.payoutEvent)
         print("  Reward currencyName: " .. reward.currencyName)
         print("  Reward rewardAmount: " .. tostring(reward.rewardAmount))
     end
@@ -225,25 +227,25 @@ end
 function tapQQResponseHandler(payload)
     print("[TapResearch-LuaExample] Got QQ payload!")
 
-    print("  Survey ID: " .. payload.survey_identifier)
-    print("  App Name: " .. payload.app_name)
-    print("  SDK Version: " .. payload.sdk_version)
-    print("  Platform: " .. payload.platform)
-    print("  Placement: " .. payload.placement_tag)
-    print("  User Locale: " .. payload.user_locale)
-    print("  Seen At: " .. payload.seen_at)
+    print("  Survey ID: ", payload.survey_identifier)
+    print("  App Name: ", payload.app_name)
+    print("  SDK Version: ", payload.sdk_version)
+    print("  Platform: ", payload.platform)
+    print("  Placement: ", payload.placement_tag)
+    print("  User Locale: ", payload.user_locale)
+    print("  Seen At: ", payload.seen_at)
 
     if payload.questions then
         print("  Questions:")
         for i, q in ipairs(payload.questions) do
             print(string.format("    [%d] %s (%s)", i, q.question_text, q.question_type))
-            print("      ID: " .. q.question_identifier)
-            print("      Rating Scale Size: " .. tostring(q.rating_scale_size))
+            print("      ID: ", q.question_identifier)
+            print("      Rating Scale Size: ", tostring(q.rating_scale_size))
             if q.user_answer then
-                print("      Answer: " .. q.user_answer.value)
+                print("      Answer: ", q.user_answer.value)
                 if q.user_answer.identifiers then
                     for _, id in ipairs(q.user_answer.identifiers) do
-                        print("        Identifier: " .. id)
+                        print("        Identifier: ", id)
                     end
                 end
             end
@@ -260,8 +262,8 @@ function tapQQResponseHandler(payload)
 
     if payload.complete then
         print("  Survey marked complete:")
-        print("    ID: " .. payload.complete.complete_identifier)
-        print("    At: " .. payload.complete.completed_at)
+        print("    ID: ", payload.complete.complete_identifier)
+        print("    At: ", payload.complete.completed_at)
     end
 
     updateLabel("Got QQ payload!")
@@ -292,12 +294,15 @@ function love.load()
     font = love.graphics.newFont(24)
     love.graphics.setFont(font)
 
-    print("[TapResearch-LuaExample] Setting REQUIRED sdk ready and sdk erorr callbacks")
+    print("[TapResearch-LuaExample] Setting REQUIRED sdk ready and sdk error callbacks")
     tap.onSdkReady = onTapSdkReady
-    tap.onTapSdkError = onTapSdkError
+    tap.onSdkError = onTapSdkError
 
     print("[TapResearch-LuaExample] Initializing TapResearchSDK")
+    -- These values will work for demonstration purposes
     tap.initialize("100e9133abc21471c8cd373587e07515", "tr-sdk-test-user-my-new-public-demo-user")
+    -- for Android, use:
+    -- tap.initialize("fb28e5e0572876db0790ecaf6c588598", "tr-sdk-test-user-7887032225")
 
     print("[TapResearch-LuaExample] Setting reward and Quick Question handlers")
     tap.setOnRewardReceived(tapRewardHandler)

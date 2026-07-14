@@ -17,8 +17,17 @@
 + (NSString*)bridgeVersion;
 + (instancetype)sharedInstance;
 
-- (void)initializeWithAPIToken:(NSString *)apiToken userId:(NSString *)userId;
-- (void)initializeWithAPIToken:(NSString *)apiToken userId:(NSString *)userId userAttributes:(NSDictionary*)attributes clearAttributes:(BOOL)clear;
+- (void)initializeWithAPIToken:(NSString *)apiToken
+						userId:(NSString *)userId
+					devVersion:(NSString *)devVersion
+				 engineVersion:(NSString *)engineVersion;
+
+- (void)initializeWithAPIToken:(NSString *)apiToken
+						userId:(NSString *)userId
+				userAttributes:(NSDictionary*)attributes
+			   clearAttributes:(BOOL)clear
+					devVersion:(NSString *)devVersion
+				 engineVersion:(NSString *)engineVersion;
 
 - (BOOL)isReady;
 - (BOOL)canShowContentForPlacement:(NSString *)placementTag;

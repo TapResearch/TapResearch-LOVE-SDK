@@ -1,29 +1,38 @@
+# TapResearch LÖVE SDK v3.8.0--rc0
 
-# TapResearch-LOVE-SDK v3.8.0--beta01
----
+The TapResearchSDK v3.8.0--rc0 LÖVE package contains:
+* Android SDK v3.8.0--rc0
+* iOS SDK v3.8.0--rc0
 
-The TapResearchSDK v3.8.0--beta01 LÖVE 2D package contains:
-* iOS SDK v3.8.0--beta02
+For additional information, please see the [TapResearch iOS SDK integration guide](https://supply-docs.tapresearch.com/docs/3.x/basic-integration/sdk-integration/love).
 
-For additional information, please see the [TapResearch LÖVE SDK integration guide](https://supply-docs.tapresearch.com/docs/3.x/basic-integration/sdk-integration/love).
+## Setup
 
----
+Create an [app](/supplier_dashboard/dashboard/apps/new) and grab your API Token.
 
-This folder contains the redistributable TapResearch SDK components for integrating TapResearch with a LÖVE iOS project.
+## Download
+
+https://github.com/TapResearch/TapResearch-LOVE-SDK
 
 ## Install
 
-From this folder, run:
+To install the SDK package into your LÖVE engine folder run the following command from the dowloaded TapResearch-LOVE-SDK package root:
 
-```sh
-ruby tools/install_tapresearch_love.rb --love-root /path/to/love --game-root /path/to/your/game
+```bash
+ruby tools/install_tapresearch_love.rb \
+  --love-root /path/to/love \
+  --android-root /path/to/love-android \
+  --game-root /path/to/your/game
 ```
 
-The installer copies the native bridge, patches LÖVE's native Lua module registration, copies the iOS `TapResearchSDK.xcframework`, updates supported Xcode projects, and copies `tapresearch.lua` into your game folder.
-
-See `platform/xcode/Integration.md` for the full integration guide.
-
-
+You can preview the process without changing any files:
+ ```bash
+ruby tools/install_tapresearch_love.rb \
+  --love-root /path/to/love \
+  --android-root /path/to/love-android \
+  --game-root /path/to/your/game \
+  --dry-run
+```
 
 ## Other platforms:
 

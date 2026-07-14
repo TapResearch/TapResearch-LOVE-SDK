@@ -24,8 +24,13 @@ static void pushNSDictionary(lua_State *L, NSDictionary *dict);
 static int l_tap_initialize(lua_State* L) {
 	const char* token = luaL_checkstring(L, 1);
 	const char* userId = luaL_checkstring(L, 2);
+	const char* devVersion = luaL_checkstring(L, 3);
+	const char* engineVersion = luaL_checkstring(L, 4);
 	[[TapResearchLoveBridge sharedInstance] initializeWithAPIToken:[NSString stringWithUTF8String:token]
-															userId:[NSString stringWithUTF8String:userId]];
+														userId:[NSString stringWithUTF8String:userId]
+														devVersion:[NSString stringWithUTF8String:devVersion]
+													 engineVersion:[NSString stringWithUTF8String:engineVersion]
+	];
 	return 0;
 }
 
@@ -42,10 +47,16 @@ static int l_tap_initialize_with_user_attributes(lua_State* L) {
 	}
 	BOOL clear = BOOL(lua_toboolean(L, 4));
 
+	const char* devVersion = luaL_checkstring(L, 5);
+	const char* engineVersion = luaL_checkstring(L, 6);
+
 	[[TapResearchLoveBridge sharedInstance] initializeWithAPIToken:[NSString stringWithUTF8String:token]
 														userId:[NSString stringWithUTF8String:userId]
 												userAttributes:dict
-											   clearAttributes:clear];
+											   clearAttributes:clear
+														devVersion:[NSString stringWithUTF8String:devVersion]
+													 engineVersion:[NSString stringWithUTF8String:engineVersion]
+	];
 	return 0;
 }
 
@@ -409,7 +420,7 @@ extern "C" int luaopen_tapresearch_native(lua_State* L) {
 		{"hasSurveys", l_tap_has_surveys},
 		{"getSurveys", l_tap_get_surveys},
 		{"showSurvey", l_tap_show_survey},
-		{"showSurveytWithCustomParameters", l_tap_show_survey_with_custom_parameters},
+		{"showSurveyWithCustomParameters", l_tap_show_survey_with_custom_parameters},
 		{NULL, NULL}
 	};
 	luaL_newlib(L, funcs);
