@@ -4,7 +4,7 @@ local tapresearch = {}
 -- Load the native bindings
 local native = require("tapresearch_native")
 
-devVersion = "3.8.0--beta01"
+devVersion = "3.8.0--rc0"
 
 function tapresearch.initialize(apiToken, userId)
     local major, minor, revision, codename = love.getVersion()

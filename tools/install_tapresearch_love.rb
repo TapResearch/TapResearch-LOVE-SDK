@@ -25,7 +25,7 @@ ANDROID_CMAKE_TARGET = <<~CMAKE
 
 CMAKE
 ANDROID_GRADLE_DEPENDENCIES = [
-  "implementation 'com.tapresearch:tapsdk:3.8.0--beta05'",
+  "implementation 'com.tapresearch:tapsdk:3.8.0--rc0'",
   "implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0'",
   "implementation 'androidx.lifecycle:lifecycle-process:2.6.1'",
   "implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0'",

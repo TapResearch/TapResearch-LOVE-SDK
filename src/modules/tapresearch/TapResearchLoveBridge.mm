@@ -1,6 +1,6 @@
 //
 //  TapResearchBridge.m
-//  
+//
 //
 //  Created by Jeroen Verbeek on 5/5/25.
 //
@@ -16,7 +16,7 @@ extern "C" {
 #import <TapResearchSDK/TapResearchSDK-Swift.h>
 
 extern "C" {
-	extern lua_State* g_luaState;
+extern lua_State* g_luaState;
 }
 
 @interface TapResearchLoveBridge () <
@@ -34,7 +34,7 @@ TapResearchGrantBoostResponseDelegate
 
 /// ---------------------------------------------------------------------------------------------
 + (NSString*)bridgeVersion {
-	return @"3.8.0--beta01";
+	return @"3.8.0--rc0";
 }
 
 /// ---------------------------------------------------------------------------------------------
@@ -187,7 +187,7 @@ TapResearchGrantBoostResponseDelegate
 	[TapResearch showContentForPlacement:placementTag delegate:self completion:^(NSError * _Nullable error) {
 		if (error) {
 			[self onTapResearchDidError:error];
-			NSLog(@"[TapResearchLoveBridge-Native] showContentForPlacement (not iPhone) show error: %@", error.localizedDescription);
+			NSLog(@"[TapResearchLoveBridge-Native] showContentForPlacement show error: %@", error.localizedDescription);
 		}
 	}];
 }
@@ -201,10 +201,13 @@ TapResearchGrantBoostResponseDelegate
 		return;
 	}
 
-	[TapResearch showContentForPlacement:placementTag delegate:self completion:^(NSError * _Nullable error) {
+	[TapResearch showContentForPlacement:placementTag
+								delegate:self
+						customParameters:parameters
+							  completion:^(NSError * _Nullable error) {
 		if (error) {
 			[self onTapResearchDidError:error];
-			NSLog(@"[TapResearchLoveBridge-Native] showContentForPlacement (not iPhone) show error: %@", error.localizedDescription);
+			NSLog(@"[TapResearchLoveBridge-Native] showContentForPlacement show error: %@", error.localizedDescription);
 		}
 	}];
 }
