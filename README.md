@@ -1,8 +1,8 @@
 # TapResearch LÖVE SDK v3.8.0--rc0
 
 The TapResearchSDK v3.8.0--rc0 LÖVE package contains:
-* Android SDK v3.8.0--rc0
-* iOS SDK v3.8.0--rc0
+* Android SDK v3.8.0--rc2
+* iOS SDK v3.8.0--rc1
 
 For additional information, please see the [TapResearch iOS SDK integration guide](https://supply-docs.tapresearch.com/docs/3.x/basic-integration/sdk-integration/love).
 
