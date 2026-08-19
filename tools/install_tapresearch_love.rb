@@ -8,7 +8,30 @@ require "pathname"
 
 TAPRESEARCH_EXTERN = "extern int luaopen_tapresearch_native(lua_State* L);"
 TAPRESEARCH_MODULE = '{ "tapresearch_native", luaopen_tapresearch_native },'
-TAPRESEARCH_SDK_RELATIVE_PATH = "platform/xcode/ios/libraries/TapResearchSDK.xcframework"
+TAPRESEARCH_SDK_RELATIVE_PATH = "platform/xcode/TapResearchSDK.xcframework"
+ANDROID_CMAKE_TARGET = <<~CMAKE
+
+  #
+  # tapresearch
+  #
+
+  add_library(love_tapresearch_root STATIC
+  	src/modules/tapresearch/tapresearch_bindings_android.cpp
+  )
+  target_link_libraries(love_tapresearch_root PUBLIC
+  	lovedep::Lua
+  	lovedep::SDL
+  )
+
+CMAKE
+ANDROID_GRADLE_DEPENDENCIES = [
+  "implementation 'com.tapresearch:tapsdk:3.8.0--rc0'",
+  "implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0'",
+  "implementation 'androidx.lifecycle:lifecycle-process:2.6.1'",
+  "implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0'",
+  "implementation 'androidx.core:core-ktx:1.10.1'",
+  "implementation 'com.google.android.gms:play-services-appset:16.1.0'"
+].freeze
 
 # Describes how to invoke the TapResearch LOVE installer.
 #
@@ -20,6 +43,7 @@ def usage
 
     Options:
       --love-root PATH        Required. Root of the LOVE source checkout to patch.
+      --android-root PATH     Optional. Root of a love-android checkout to patch.
       --game-root PATH        Optional. Game source folder where tapresearch.lua should be copied.
       --sdk-root PATH         Optional. Root of this TapResearch LOVE SDK package.
       --dry-run              Print the planned changes without writing files.
@@ -28,6 +52,7 @@ def usage
       --skip-lua-copy        Do not copy tapresearch.lua to --game-root.
       --skip-sdk-copy        Do not copy TapResearchSDK.xcframework into the LOVE checkout.
       --skip-xcode-project   Do not update Xcode project files.
+      --skip-android         Do not update the love-android checkout.
       --help                 Show this help text.
   USAGE
 end
@@ -44,12 +69,14 @@ def parse_options(argv)
     skip_module_copy: false,
     skip_lua_copy: false,
     skip_sdk_copy: false,
-    skip_xcode_project: false
+    skip_xcode_project: false,
+    skip_android: false
   }
 
   parser = OptionParser.new do |opts|
     opts.banner = usage
     opts.on("--love-root PATH", "Root of the LOVE source checkout to patch.") { |path| options[:love_root] = Pathname.new(path).expand_path }
+    opts.on("--android-root PATH", "Root of a LOVE Android checkout to patch.") { |path| options[:android_root] = Pathname.new(path).expand_path }
     opts.on("--game-root PATH", "Game folder where tapresearch.lua should be copied.") { |path| options[:game_root] = Pathname.new(path).expand_path }
     opts.on("--sdk-root PATH", "Root of this TapResearch LOVE SDK package.") { |path| options[:sdk_root] = Pathname.new(path).expand_path }
     opts.on("--dry-run", "Print planned changes without writing files.") { options[:dry_run] = true }
@@ -58,6 +85,7 @@ def parse_options(argv)
     opts.on("--skip-lua-copy", "Do not copy tapresearch.lua.") { options[:skip_lua_copy] = true }
     opts.on("--skip-sdk-copy", "Do not copy TapResearchSDK.xcframework.") { options[:skip_sdk_copy] = true }
     opts.on("--skip-xcode-project", "Do not update Xcode project files.") { options[:skip_xcode_project] = true }
+    opts.on("--skip-android", "Do not update the LOVE Android checkout.") { options[:skip_android] = true }
     opts.on("--help", "Show this help text.") do
       puts usage
       exit 0
@@ -66,6 +94,20 @@ def parse_options(argv)
 
   parser.parse!(argv)
   options
+end
+
+# Verifies that Android-specific SDK package files exist.
+#
+# @param sdk_root [Pathname] Root of this TapResearch LOVE SDK package.
+# @return [void]
+def validate_android_sdk_root!(sdk_root)
+  [
+    "platform/android/app/src/main/cpp/love/src/modules/tapresearch/tapresearch_bindings_android.cpp",
+    "platform/android/app/src/main/java/com/tapresearch/love/TapResearchLoveBridge.java"
+  ].each do |relative_path|
+    path = sdk_root.join(relative_path)
+    abort_with_usage("missing Android integration file at #{path}") unless path.file?
+  end
 end
 
 # Stops installation when a required path or option is missing.
@@ -117,6 +159,24 @@ def validate_love_root!(love_root)
 
   love_cpp = love_root.join("src/modules/love/love.cpp")
   abort_with_usage("missing #{love_cpp}") unless love_cpp.file?
+end
+
+# Verifies that the target LOVE Android checkout has the expected app files.
+#
+# @param android_root [Pathname] Root of the love-android checkout.
+# @return [void]
+def validate_android_root!(android_root)
+  abort_with_usage("missing LOVE Android source root at #{android_root}") unless android_root.directory?
+
+  [
+    "app/build.gradle",
+    "app/src/main/cpp/love/CMakeLists.txt",
+    "app/src/main/cpp/love/src/modules/love/love.cpp",
+    "app/src/main/java/org/love2d/android/GameActivity.java"
+  ].each do |relative_path|
+    path = android_root.join(relative_path)
+    abort_with_usage("missing #{path}") unless path.file?
+  end
 end
 
 # Copies a file or directory unless running in dry-run mode.
@@ -186,6 +246,125 @@ def patch_love_cpp(love_cpp, dry_run:)
   changed
 end
 
+# Patches a text file and reports whether a change was needed.
+#
+# @param path [Pathname] File to patch.
+# @param dry_run [Boolean] Whether to report without writing.
+# @yieldparam content [String] Original file content.
+# @yieldreturn [Array(String, Boolean)] Updated content and whether it changed.
+# @return [Boolean] Whether the file needed changes.
+def patch_text_file(path, dry_run:)
+  original = path.read
+  updated, changed = yield(original)
+
+  if changed
+    puts "#{dry_run ? "Would patch" : "Patching"} #{path}"
+    path.write(updated) unless dry_run
+  else
+    puts "Already patched #{path}"
+  end
+
+  changed
+end
+
+# Inserts the TapResearch Android CMake target and dependency.
+#
+# @param cmake_file [Pathname] Path to app/src/main/cpp/love/CMakeLists.txt.
+# @param dry_run [Boolean] Whether to report without writing.
+# @return [Boolean] Whether the file needed changes.
+def patch_android_cmake(cmake_file, dry_run:)
+  patch_text_file(cmake_file, dry_run: dry_run) do |content|
+    updated = content.dup
+    changed = false
+
+    unless updated.include?("add_library(love_tapresearch_root STATIC")
+      marker = "set(LIBLOVE_DEPENDENCIES\n"
+      abort "Could not find LIBLOVE_DEPENDENCIES in Android CMakeLists.txt" unless updated.include?(marker)
+
+      updated = updated.sub(marker, "#{ANDROID_CMAKE_TARGET}#{marker}")
+      changed = true
+    end
+
+    unless updated.match?(/set\(LIBLOVE_DEPENDENCIES\n(?:.*\n)*?\tlove_tapresearch_root\b/)
+      marker = "set(LIBLOVE_DEPENDENCIES\n"
+      abort "Could not find LIBLOVE_DEPENDENCIES in Android CMakeLists.txt" unless updated.include?(marker)
+
+      updated = updated.sub(marker, "#{marker}\tlove_tapresearch_root\n")
+      changed = true
+    end
+
+    [updated, changed]
+  end
+end
+
+# Inserts TapResearch Android SDK dependencies into app/build.gradle.
+#
+# @param gradle_file [Pathname] Path to app/build.gradle.
+# @param dry_run [Boolean] Whether to report without writing.
+# @return [Boolean] Whether the file needed changes.
+def patch_android_gradle(gradle_file, dry_run:)
+  patch_text_file(gradle_file, dry_run: dry_run) do |content|
+    missing = ANDROID_GRADLE_DEPENDENCIES.reject { |dependency| content.include?(dependency) }
+    next [content, false] if missing.empty?
+
+    marker = "dependencies {\n"
+    abort "Could not find dependencies block in Android build.gradle" unless content.include?(marker)
+
+    block = "\n    // required by TapResearch SDK\n" + missing.map { |dependency| "    #{dependency}\n" }.join
+    [content.sub(marker, "#{marker}#{block}"), true]
+  end
+end
+
+# Inserts the TapResearch activity registration into GameActivity.onCreate.
+#
+# @param activity_file [Pathname] Path to GameActivity.java.
+# @param dry_run [Boolean] Whether to report without writing.
+# @return [Boolean] Whether the file needed changes.
+def patch_android_game_activity(activity_file, dry_run:)
+  marker = "com.tapresearch.love.TapResearchLoveBridge.setActivity(this);"
+
+  patch_text_file(activity_file, dry_run: dry_run) do |content|
+    next [content, false] if content.include?(marker)
+
+    pattern = /(protected void onCreate\(Bundle savedInstanceState\) \{\n)/
+    abort "Could not find GameActivity.onCreate in #{activity_file}" unless content.match?(pattern)
+
+    [content.sub(pattern, "\\1        #{marker}\n"), true]
+  end
+end
+
+# Updates a love-android checkout with the TapResearch bridge.
+#
+# @param sdk_root [Pathname] Root of this TapResearch LOVE SDK package.
+# @param android_root [Pathname] Root of the love-android checkout.
+# @param dry_run [Boolean] Whether to report without writing.
+# @return [void]
+def patch_android_project(sdk_root, android_root, dry_run:)
+  validate_android_sdk_root!(sdk_root)
+  validate_android_root!(android_root)
+
+  copy_path(
+    sdk_root.join("platform/android/app/src/main/cpp/love/src/modules/tapresearch/tapresearch_bindings_android.cpp"),
+    android_root.join("app/src/main/cpp/love/src/modules/tapresearch/tapresearch_bindings_android.cpp"),
+    dry_run: dry_run
+  )
+  copy_path(
+    sdk_root.join("platform/android/app/src/main/java/com/tapresearch/love/TapResearchLoveBridge.java"),
+    android_root.join("app/src/main/java/com/tapresearch/love/TapResearchLoveBridge.java"),
+    dry_run: dry_run
+  )
+  copy_path(
+    sdk_root.join("src/scripts/tapexample/tapresearch.lua"),
+    android_root.join("app/src/embed/assets/tapresearch.lua"),
+    dry_run: dry_run
+  )
+
+  patch_love_cpp(android_root.join("app/src/main/cpp/love/src/modules/love/love.cpp"), dry_run: dry_run)
+  patch_android_cmake(android_root.join("app/src/main/cpp/love/CMakeLists.txt"), dry_run: dry_run)
+  patch_android_gradle(android_root.join("app/build.gradle"), dry_run: dry_run)
+  patch_android_game_activity(android_root.join("app/src/main/java/org/love2d/android/GameActivity.java"), dry_run: dry_run)
+end
+
 # Inserts a PBX object line after the matching section header.
 #
 # @param content [String] Original project.pbxproj contents.
@@ -200,6 +379,49 @@ def insert_pbx_object(content, section, line, marker)
   abort "Could not find #{section} section in Xcode project" unless content.include?(header)
 
   [content.sub(header, "#{header}#{line}"), true]
+end
+
+# Normalizes older TapResearchSDK.xcframework project references to the installer-managed id and path.
+#
+# @param content [String] Original project.pbxproj contents.
+# @param sdk_ref [String] Installer-managed PBXFileReference id for TapResearchSDK.xcframework.
+# @return [Array(String, Boolean)] Updated contents and whether a change was made.
+def normalize_tapresearch_sdk_reference(content, sdk_ref)
+  pattern = /^\t\t([A-F0-9]{24}) \/\* TapResearchSDK\.xcframework \*\/ = \{isa = PBXFileReference; lastKnownFileType = wrapper\.xcframework; (?:name = TapResearchSDK\.xcframework; )?path = (?:ios\/libraries\/)?TapResearchSDK\.xcframework; sourceTree = "<group>"; \};\n/
+  old_ids = content.scan(pattern).flatten.uniq
+  return [content, false] if old_ids.empty?
+
+  reference_line = "\t\t#{sdk_ref} /* TapResearchSDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = TapResearchSDK.xcframework; sourceTree = \"<group>\"; };\n"
+  updated = content.gsub(pattern, reference_line)
+  old_ids.each do |old_id|
+    updated = updated.gsub("#{old_id} /* TapResearchSDK.xcframework */", "#{sdk_ref} /* TapResearchSDK.xcframework */")
+  end
+
+  [updated, updated != content]
+end
+
+# Removes stale project references from the previous tapresearchlove module integration.
+#
+# @param content [String] Original project.pbxproj contents.
+# @return [Array(String, Boolean)] Updated contents and whether a change was made.
+def remove_legacy_tapresearchlove_references(content)
+  legacy_comments = [
+    "TapResearchLove.h",
+    "TapResearchLove.mm",
+    "wrap_TapResearchLove.h",
+    "wrap_TapResearchLove.cpp",
+    "dummy.swift",
+    "liblove-ios-Bridging-Header.h"
+  ]
+
+  updated = content.gsub(/^\t\t[A-F0-9]{24} \/\* tapresearchlove \*\/ = \{\n(?:.*?\n)*?\t\t\};\n/m, "")
+  legacy_comments.each do |comment|
+    updated = updated.gsub(/^\t+.*\/\* #{Regexp.escape(comment)}(?: in Sources)? \*\/.*\n/, "")
+  end
+  updated = updated.gsub(/^\t+.*\/\* tapresearchlove \*\/,\n/, "")
+  updated = updated.gsub(%r{^\t+\tSWIFT_OBJC_BRIDGING_HEADER = "\.\./\.\./src/modules/tapresearchlove/liblove-ios-Bridging-Header\.h";\n}, "")
+
+  [updated, updated != content]
 end
 
 # Replaces a PBX project section after applying a section-local edit.
@@ -349,6 +571,12 @@ def patch_liblove_xcode_project(project_file, dry_run:)
     embed_phase: xcode_id("liblove:TapResearchSDK.xcframework:embed_phase")
   }
 
+  content, changed = remove_legacy_tapresearchlove_references(content)
+  changes << changed
+
+  content, changed = normalize_tapresearch_sdk_reference(content, ids[:sdk_ref])
+  changes << changed
+
   [
     ["/* tapresearch_bindings.mm in Sources */ = {isa = PBXBuildFile;", "\t\t#{ids[:bindings_build]} /* tapresearch_bindings.mm in Sources */ = {isa = PBXBuildFile; fileRef = #{ids[:bindings_ref]} /* tapresearch_bindings.mm */; };\n"],
     ["/* TapResearchLoveBridge.mm in Sources */ = {isa = PBXBuildFile;", "\t\t#{ids[:bridge_build]} /* TapResearchLoveBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = #{ids[:bridge_ref]} /* TapResearchLoveBridge.mm */; };\n"],
@@ -363,7 +591,7 @@ def patch_liblove_xcode_project(project_file, dry_run:)
     ["/* tapresearch_bindings.mm */ = {isa = PBXFileReference;", "\t\t#{ids[:bindings_ref]} /* tapresearch_bindings.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = tapresearch_bindings.mm; sourceTree = \"<group>\"; };\n"],
     ["/* TapResearchLoveBridge.h */ = {isa = PBXFileReference;", "\t\t#{ids[:bridge_header_ref]} /* TapResearchLoveBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TapResearchLoveBridge.h; sourceTree = \"<group>\"; };\n"],
     ["/* TapResearchLoveBridge.mm */ = {isa = PBXFileReference;", "\t\t#{ids[:bridge_ref]} /* TapResearchLoveBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TapResearchLoveBridge.mm; sourceTree = \"<group>\"; };\n"],
-    ["/* TapResearchSDK.xcframework */ = {isa = PBXFileReference;", "\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = TapResearchSDK.xcframework; path = ios/libraries/TapResearchSDK.xcframework; sourceTree = \"<group>\"; };\n"]
+    ["/* TapResearchSDK.xcframework */ = {isa = PBXFileReference;", "\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = TapResearchSDK.xcframework; sourceTree = \"<group>\"; };\n"]
   ].each do |marker, line|
     content, changed = insert_pbx_object(content, "PBXFileReference", line, marker)
     changes << changed
@@ -390,7 +618,6 @@ def patch_liblove_xcode_project(project_file, dry_run:)
   content, changed = insert_pbx_group_child(content, "Frameworks", "\t\t\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */,\n", "/* TapResearchSDK.xcframework */,")
   changes << changed
 
-  embed_marker = "/* Embed Frameworks */"
   embed_phase = <<~PBX
   \t\t#{ids[:embed_phase]} /* Embed Frameworks */ = {
   \t\t\tisa = PBXCopyFilesBuildPhase;
@@ -404,9 +631,9 @@ def patch_liblove_xcode_project(project_file, dry_run:)
   \t\t\trunOnlyForDeploymentPostprocessing = 1;
   \t\t};
   PBX
-  content, changed = insert_pbx_object(content, "PBXCopyFilesBuildPhase", embed_phase, embed_marker)
+  content, changed = insert_pbx_object(content, "PBXCopyFilesBuildPhase", embed_phase, "#{ids[:embed_phase]} /* Embed Frameworks */ =")
   changes << changed
-  content, changed = insert_liblove_target_phase(content, "\t\t\t\t#{ids[:embed_phase]} /* Embed Frameworks */,\n", "/* Embed Frameworks */,")
+  content, changed = insert_liblove_target_phase(content, "\t\t\t\t#{ids[:embed_phase]} /* Embed Frameworks */,\n", "#{ids[:embed_phase]} /* Embed Frameworks */,")
   changes << changed
   content, changed = insert_pbx_phase_file(content, "PBXCopyFilesBuildPhase", "Embed Frameworks", "\t\t\t\t#{ids[:sdk_embed_build]} /* TapResearchSDK.xcframework in Embed Frameworks */,\n", "/* TapResearchSDK.xcframework in Embed Frameworks */,")
   changes << changed
@@ -445,6 +672,9 @@ def patch_love_xcode_project(project_file, dry_run:)
     embed_phase: xcode_id("love:TapResearchSDK.xcframework:embed_phase")
   }
 
+  content, changed = normalize_tapresearch_sdk_reference(content, ids[:sdk_ref])
+  changes << changed
+
   [
     ["/* TapResearchSDK.xcframework in Frameworks */ = {isa = PBXBuildFile;", "\t\t#{ids[:sdk_framework_build]} /* TapResearchSDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = #{ids[:sdk_ref]} /* TapResearchSDK.xcframework */; };\n"],
     ["/* TapResearchSDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile;", "\t\t#{ids[:sdk_embed_build]} /* TapResearchSDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = #{ids[:sdk_ref]} /* TapResearchSDK.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };\n"]
@@ -456,7 +686,7 @@ def patch_love_xcode_project(project_file, dry_run:)
   content, changed = insert_pbx_object(
     content,
     "PBXFileReference",
-    "\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = TapResearchSDK.xcframework; path = ios/libraries/TapResearchSDK.xcframework; sourceTree = \"<group>\"; };\n",
+    "\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = TapResearchSDK.xcframework; sourceTree = \"<group>\"; };\n",
     "/* TapResearchSDK.xcframework */ = {isa = PBXFileReference;"
   )
   changes << changed
@@ -464,7 +694,6 @@ def patch_love_xcode_project(project_file, dry_run:)
   content, changed = insert_pbx_group_child(content, "Frameworks", "\t\t\t\t#{ids[:sdk_ref]} /* TapResearchSDK.xcframework */,\n", "/* TapResearchSDK.xcframework */,")
   changes << changed
 
-  embed_marker = "/* Embed Frameworks */"
   embed_phase = <<~PBX
   \t\t#{ids[:embed_phase]} /* Embed Frameworks */ = {
   \t\t\tisa = PBXCopyFilesBuildPhase;
@@ -478,9 +707,9 @@ def patch_love_xcode_project(project_file, dry_run:)
   \t\t\trunOnlyForDeploymentPostprocessing = 0;
   \t\t};
   PBX
-  content, changed = insert_pbx_object(content, "PBXCopyFilesBuildPhase", embed_phase, embed_marker)
+  content, changed = insert_pbx_object(content, "PBXCopyFilesBuildPhase", embed_phase, "#{ids[:embed_phase]} /* Embed Frameworks */ =")
   changes << changed
-  content, changed = insert_target_phase_after(content, "love-ios", "Resources", "\t\t\t\t#{ids[:embed_phase]} /* Embed Frameworks */,\n", "/* Embed Frameworks */,")
+  content, changed = insert_target_phase_after(content, "love-ios", "Resources", "\t\t\t\t#{ids[:embed_phase]} /* Embed Frameworks */,\n", "#{ids[:embed_phase]} /* Embed Frameworks */,")
   changes << changed
 
   ios_frameworks_phase = target_build_phase_id(content, "love-ios", "Frameworks")
@@ -553,6 +782,12 @@ def install(options)
   end
 
   patch_xcode_projects(options[:love_root], dry_run: options[:dry_run]) unless options[:skip_xcode_project]
+
+  if options[:android_root] && !options[:skip_android]
+    patch_android_project(options[:sdk_root], options[:android_root], dry_run: options[:dry_run])
+  elsif !options[:skip_android]
+    puts "Skipping Android update because --android-root was not provided."
+  end
 
   if options[:game_root] && !options[:skip_lua_copy]
     copy_path(

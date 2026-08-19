@@ -4,18 +4,31 @@ local tapresearch = {}
 -- Load the native bindings
 local native = require("tapresearch_native")
 
+devVersion = "3.8.0--rc0"
+
 function tapresearch.initialize(apiToken, userId)
+    local major, minor, revision, codename = love.getVersion()
+print("getVersion: major=" .. major)
+print("getVersion: minor=" .. minor)
+print("getVersion: revision=" .. revision)
+    local devEngineVersion = major .. "." .. minor .. "." .. revision
+    print("devVersion  " .. devVersion .. " devEngineVersion: " .. devEngineVersion)
+
     assert(type(apiToken) == "string", "apiToken must be a string")
     assert(type(userId) == "string", "userId must be a string")
-    native.initialize(apiToken, userId)
+    native.initialize(apiToken, userId, devVersion, devEngineVersion)
 end
 
-function initializeWithUserAttributes(apiToken, userId, attributes, clear)
+function tapresearch.initializeWithUserAttributes(apiToken, userId, attributes, clear)
+    local major, minor, revision, codename = love.getVersion()
+    local devEngineVersion = major .. "." .. minor .. "." .. revision
+    print("devVersion  " .. devVersion .. " devEngineVersion: " .. devEngineVersion)
+
     assert(type(apiToken) == "string", "apiToken must be a string")
     assert(type(userId) == "string", "userId must be a string")
 	assert(type(attributes) == "table", "attributes must be a table")
 	assert(type(clear) == "boolean", "clear must be a boolean")
-    native.initializeWithUserAttributes(apiToken, userId, attributes, clear)
+    native.initializeWithUserAttributes(apiToken, userId, attributes, clear, devVersion, devEngineVersion)
 end
 
 function tapresearch.isReady()
@@ -48,10 +61,10 @@ function tapresearch.showContent(placementTag)
     native.showContent(placementTag)
 end
 
-function showContentWithCustomParameters(placementTag, attributes)
+function tapresearch.showContentWithCustomParameters(placementTag, attributes)
     assert(type(placementTag) == "string", "placementTag must be a string")
- 	assert(type(parameters) == "table", "attributes must be a table")
-    native.showContentWithCustomParameters(placement, attributes)
+ 	assert(type(attributes) == "table", "attributes must be a table")
+    native.showContentWithCustomParameters(placementTag, attributes)
 end
 
 function tapresearch.showSurvey(surveyId, placementTag)
@@ -60,11 +73,11 @@ function tapresearch.showSurvey(surveyId, placementTag)
 	native.showSurvey(surveyId, placementTag)
 end
 
-function showSurveyWithCustomParameters(surveyId, placementTag, attributes)
+function tapresearch.showSurveyWithCustomParameters(surveyId, placementTag, attributes)
 	assert(type(surveyId) == "string", "surveyId must be a string")
 	assert(type(placementTag) == "string", "placementTag must be a string")
-	assert(type(parameters) == "table", "attributes must be a table")
-	native.showContentWithCustomParameters(survey, placementTag, attributes)
+	assert(type(attributes) == "table", "attributes must be a table")
+	native.showSurveyWithCustomParameters(surveyId, placementTag, attributes)
 end
 
 function tapresearch.getSurveys(placementTag)
